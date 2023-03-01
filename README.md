@@ -22,7 +22,7 @@ For help with urgent situations, please use the IBM PMR process.  All Spectrum S
 who also have ongoing support contracts, are entitled to the PMR process.  Feature requests through the official RFE channels are also encouraged.
 
 For non-urgent issues, suggestions, recommendations, feel free to open an issue in [github](https://github.com/IBM/ibm-spectrum-scale-csi/issues).
-Issues will be addressed as team availability permits.
+Issues will be addressed as team availability permits..
 
 ## Contributing
 
