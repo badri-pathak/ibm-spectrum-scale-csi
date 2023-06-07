@@ -194,7 +194,6 @@ func (s *csiNodeSyncer) ensurePodSpec(secrets []corev1.LocalObjectReference) cor
 		Tolerations:        s.driver.Spec.Tolerations,
 		ImagePullSecrets:   secrets,
 		Affinity:           s.driver.GetAffinity(config.NodePlugin.String()),
-		SecurityContext:    ensurePodSecurityContext(config.RunAsUser, config.RunAsGroup, true),
 		PriorityClassName:  "system-node-critical",
 	}
 	return pod
