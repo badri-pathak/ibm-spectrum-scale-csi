@@ -795,7 +795,7 @@ func (c *CSIScaleOperator) GetNodeTolerations() []corev1.Toleration {
 func (c *CSIScaleOperator) GetLivenessProbe() *corev1.Probe {
 	//tolerationsSeconds := config.TolerationsSeconds
 	probe := corev1.Probe{
-		FailureThreshold:    int32(1),
+		FailureThreshold:    int32(5),
 		InitialDelaySeconds: int32(10),
 		TimeoutSeconds:      int32(10),
 		PeriodSeconds:       int32(20),
