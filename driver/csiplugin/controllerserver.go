@@ -301,15 +301,6 @@ func (cs *ScaleControllerServer) createFilesetBasedVol(ctx context.Context, scVo
 
 	// fileset can not be created if filesystem is remote.
 	klog.Infof("[%s] check if volumes filesystem [%v] is remote or local for cluster [%v]", loggerId, scVol.VolBackendFs, scVol.ClusterId)
-	/*	fsDetails, err := scVol.Connector.GetFilesystemDetails(ctx, scVol.VolBackendFs)
-		if err != nil {
-			if strings.Contains(err.Error(), "Invalid value in filesystemName") {
-				klog.Errorf("[%s] volume:[%v] - filesystem %s in not known to cluster %v. Error: %v", loggerId, scVol.VolName, scVol.VolBackendFs, scVol.ClusterId, err)
-				return "", status.Error(codes.Internal, fmt.Sprintf("Filesystem %s in not known to cluster %v. Error: %v", scVol.VolBackendFs, scVol.ClusterId, err))
-			}
-			klog.Errorf("[%s] volume:[%v] - unable to check type of filesystem [%v]. Error: %v", loggerId, scVol.VolName, scVol.VolBackendFs, err)
-			return "", status.Error(codes.Internal, fmt.Sprintf("unable to check type of filesystem [%v]. Error: %v", scVol.VolBackendFs, err))
-		}*/
 
 	if volFsInfo.Type == filesystemTypeRemote {
 		klog.Errorf("[%s] volume:[%v] - filesystem [%v] is not local to cluster [%v]", loggerId, scVol.VolName, scVol.VolBackendFs, scVol.ClusterId)
@@ -691,16 +682,6 @@ func (cs *ScaleControllerServer) CreateVolume(ctx context.Context, req *csi.Crea
 			return nil, err
 		}
 	}
-	/*
-		if scaleVol.PrimaryFS != scaleVol.VolBackendFs {
-			// primary filesytem must be mounted on GUI node so that we can create the softlink
-			// skip if primary and volume filesystem is same
-			err := checkFilesystemMountOnGUI(ctx, scaleVol.PrimaryConnector, scaleVol.PrimaryFS, scaleVol.VolName, "primary")
-
-			if err != nil {
-				return nil, err
-			}
-		}*/
 
 	volFsInfo, err := checkVolumeFilesystemMountOnPrimary(ctx, scaleVol)
 	if err != nil {
@@ -1507,20 +1488,6 @@ func (cs *ScaleControllerServer) checkCGSupport(ctx context.Context, conn connec
 	return nil
 }
 
-/*func (cs *ScaleControllerServer) checkGuiHASupport(ctx context.Context, conn connectors.SpectrumScaleConnector) error {
-	 // Verify IBM Storage Scale Version is not below 5.1.5-0
-
-	 versionCheck, err := cs.checkMinScaleVersion(ctx, conn, "5150")
-	 if err != nil {
-		 return err
-	 }
-
-	 if !versionCheck {
-		 return status.Error(codes.FailedPrecondition, "the minimum required IBM Storage Scale version for GUI HA support with CSI is 5.1.5-0")
-	 }
-	 return nil
- }*/
-
 func (cs *ScaleControllerServer) validateSnapId(ctx context.Context, scaleVol *scaleVolume, sourcesnapshot *scaleSnapId, newvolume *scaleVolume, pCid string, assembledScaleversion string) error {
 
 	loggerId := utils.GetLoggerId(ctx)
@@ -1575,32 +1542,10 @@ func (cs *ScaleControllerServer) validateSnapId(ctx context.Context, scaleVol *s
 		return status.Error(codes.Internal, fmt.Sprintf("unable to get filesystem Name for Id [%v] and clusterId [%v]. Error [%v]", sourcesnapshot.FsUUID, sourcesnapshot.ClusterId, err))
 	}
 
-	/*	if sourcesnapshot.FsName != newvolume.VolBackendFs {
-		/*		isFsMounted, err := conn.IsFilesystemMountedOnGUINode(ctx, sourcesnapshot.FsName)
-				 if err != nil {
-					 return status.Error(codes.Internal, fmt.Sprintf("error in getting filesystem mount details for %s", sourcesnapshot.FsName))
-				 }
-				 if !isFsMounted {
-					 return status.Error(codes.Internal, fmt.Sprintf("filesystem %s is not mounted on GUI node", sourcesnapshot.FsName))
-				 }*/
-	/*		err = checkFilesystemMountOnGUI(ctx, conn, sourcesnapshot.FsName, "", "")
-
-			if err != nil {
-				return err
-			}*/
-	/*  	}*/
-
 	filesetToCheck := sourcesnapshot.FsetName
 	if sourcesnapshot.StorageClassType == STORAGECLASS_ADVANCED {
 		filesetToCheck = sourcesnapshot.ConsistencyGroup
 	}
-	/*isFsetLinked, err := conn.IsFilesetLinked(ctx, sourcesnapshot.FsName, filesetToCheck)
-	 if err != nil {
-		 return status.Error(codes.Internal, fmt.Sprintf("unable to get fileset link information for [%v]", filesetToCheck))
-	 }
-	 if !isFsetLinked {
-		 return status.Error(codes.Internal, fmt.Sprintf("fileset [%v] of source snapshot is not linked", filesetToCheck))
-	 }*/
 
 	err = cs.checkFileSetLink(ctx, conn, scaleVol, sourcesnapshot.FsName, filesetToCheck, "source snapshot")
 	if err != nil {
@@ -1745,14 +1690,6 @@ func (cs *ScaleControllerServer) validateCloneRequest(ctx context.Context, scale
 				return status.Error(codes.Internal, fmt.Sprintf("error in getting fileset details for %s", sourcevolume.FsetId))
 			}
 		}
-
-		/*	isFsetLinked, err := conn.IsFilesetLinked(ctx, sourcevolume.FsName, sourcevolume.FsetName)
-			 if err != nil {
-				 return status.Error(codes.Internal, fmt.Sprintf("unable to get fileset link information for [%v]", sourcevolume.FsetName))
-			 }
-			 if !isFsetLinked {
-				 return status.Error(codes.Internal, fmt.Sprintf("fileset [%v] of source volume is not linked", sourcevolume.FsetName))
-			 }*/
 
 		if sourcevolume.VolType != FILE_SHALLOWCOPY_VOLUME {
 			err = cs.checkFileSetLink(ctx, conn, scaleVol, sourcevolume.FsName, sourcevolume.FsetName, "source")
