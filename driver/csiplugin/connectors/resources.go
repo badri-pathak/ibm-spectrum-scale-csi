@@ -697,3 +697,13 @@ type CopyVolumeRequest struct {
 	NodeClass        string `json:"nodeclassName,omitempty"`
 	Force            bool   `json:"force,omitempty"`
 }
+
+type Disk struct {
+	AvailableBlocks int64  `json:"availableBlocks,omitempty"`
+	FileSystem      string `json:"fileSystem,omitempty"`
+	Name            string `json:"name,omitempty"`
+}
+type DiskSizeResponse struct {
+	Disks  []Disk `json:"disks,omitempty"`
+	Status Status `json:"status,omitempty"`
+}

@@ -721,7 +721,7 @@ func (cs *ScaleControllerServer) CreateVolume(ctx context.Context, req *csi.Crea
 	}
 
 	if isVolSource {
-		err = cs.validateCloneRequest(ctx, scaleVol, &srcVolumeIDMembers, scaleVol, volFsInfo, assembledScaleversion)
+		err = cs.validateCloneRequest(ctx, scaleVol, &srcVolumeIDMembers, scaleVol, volFsInfo, assembledScaleversion, volSize)
 		if err != nil {
 			klog.Errorf("[%s] volume:[%v] - Error in source volume validation [%v]", loggerId, volName, err)
 			return nil, err
@@ -730,7 +730,7 @@ func (cs *ScaleControllerServer) CreateVolume(ctx context.Context, req *csi.Crea
 	}
 
 	if isSnapSource {
-		err = cs.validateSnapId(ctx, scaleVol, &snapIdMembers, scaleVol, assembledScaleversion)
+		err = cs.validateSnapId(ctx, scaleVol, &snapIdMembers, scaleVol, assembledScaleversion, volSize)
 		if err != nil {
 			klog.Errorf("[%s] volume:[%v] - Error in source snapshot validation [%v]", loggerId, volName, err)
 			return nil, err
@@ -920,6 +920,7 @@ func (cs *ScaleControllerServer) setScaleVolume(ctx context.Context, req *csi.Cr
 func (cs *ScaleControllerServer) getVolORSnapMembers(ctx context.Context, req *csi.CreateVolumeRequest, volName string) (bool, bool, *csi.VolumeContentSource, scaleSnapId, scaleVolId, error) {
 	loggerId := utils.GetLoggerId(ctx)
 	volSrc := req.GetVolumeContentSource()
+	klog.Infof("[%s] getVolORSnapMembers: GetVolumeContentSource : volSrc : [%v]", loggerId, volSrc)
 	isSnapSource := false
 	isVolSource := false
 
@@ -1530,7 +1531,7 @@ func (cs *ScaleControllerServer) checkCGSupport(assembledScaleversion string) er
 	 return nil
  }*/
 
-func (cs *ScaleControllerServer) validateSnapId(ctx context.Context, scaleVol *scaleVolume, sourcesnapshot *scaleSnapId, newvolume *scaleVolume, assembledScaleversion string) error {
+func (cs *ScaleControllerServer) validateSnapId(ctx context.Context, scaleVol *scaleVolume, sourcesnapshot *scaleSnapId, newvolume *scaleVolume, assembledScaleversion string, volSize int64) error {
 
 	loggerId := utils.GetLoggerId(ctx)
 	klog.Infof("[%s] validateSnapId [%v]", loggerId, sourcesnapshot)
@@ -1624,6 +1625,15 @@ func (cs *ScaleControllerServer) validateSnapId(ctx context.Context, scaleVol *s
 		return status.Error(codes.Internal, fmt.Sprintf("snapshot [%v] does not exist for fileset [%v]", sourcesnapshot.SnapName, filesetToCheck))
 	}
 
+	diskAvailable, err := conn.GetDiskAvailability(ctx, sourcesnapshot.FsName)
+	if err != nil {
+		return status.Error(codes.Internal, fmt.Sprintf("error in getting diskAvailable for %s", sourcesnapshot.FsName))
+	}
+	klog.V(6).Infof("[%s] requested volume size :[%v],  diskAvailable : [%v]", loggerId, volSize, diskAvailable)
+	if volSize > diskAvailable {
+		return status.Error(codes.Internal, fmt.Sprintf("requested volume size :[%v] is not available on the disk [%v]", volSize, diskAvailable))
+	}
+
 	return nil
 }
 
@@ -1687,7 +1697,7 @@ func (cs *ScaleControllerServer) createSnapshotDir(ctx context.Context, sourcesn
 	return nil
 }
 
-func (cs *ScaleControllerServer) validateCloneRequest(ctx context.Context, scaleVol *scaleVolume, sourcevolume *scaleVolId, newvolume *scaleVolume, volFsInfo connectors.FileSystem_v2, assembledScaleversion string) error {
+func (cs *ScaleControllerServer) validateCloneRequest(ctx context.Context, scaleVol *scaleVolume, sourcevolume *scaleVolId, newvolume *scaleVolume, volFsInfo connectors.FileSystem_v2, assembledScaleversion string, volSize int64) error {
 	loggerId := utils.GetLoggerId(ctx)
 	klog.Infof("[%s] validateVolId [%v]", loggerId, sourcevolume)
 
@@ -1768,6 +1778,15 @@ func (cs *ScaleControllerServer) validateCloneRequest(ctx context.Context, scale
 			if err != nil {
 				return err
 			}
+		}
+
+		diskAvailable, err := conn.GetDiskAvailability(ctx, sourcevolume.FsName)
+		if err != nil {
+			return status.Error(codes.Internal, fmt.Sprintf("error in getting diskAvailable for %s", sourcevolume.FsName))
+		}
+		klog.V(6).Infof("[%s] requested volume size :[%v],  diskAvailable : [%v]", loggerId, volSize, diskAvailable)
+		if volSize > diskAvailable {
+			return status.Error(codes.Internal, fmt.Sprintf("requested volume size :[%v] is not available on the disk [%v]", volSize, diskAvailable))
 		}
 	}
 

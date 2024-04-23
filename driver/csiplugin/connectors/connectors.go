@@ -37,6 +37,7 @@ type SpectrumScaleConnector interface {
 	ListFilesystems(ctx context.Context) ([]string, error)
 	GetFilesystemDetails(ctx context.Context, filesystemName string) (FileSystem_v2, error)
 	GetFilesystemMountpoint(ctx context.Context, filesystemName string) (string, error)
+	GetDiskAvailability(ctx context.Context, filesystemName string) (int64, error)
 	//Fileset operations
 	CreateFileset(ctx context.Context, filesystemName string, filesetName string, opts map[string]interface{}) error
 	UpdateFileset(ctx context.Context, filesystemName string, filesetName string, opts map[string]interface{}) error

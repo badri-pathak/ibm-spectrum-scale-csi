@@ -1615,6 +1615,40 @@ func (s *SpectrumRestV2) GetFirstDataTier(ctx context.Context, filesystemName st
 	return "system", nil
 }
 
+func (s *SpectrumRestV2) GetDiskAvailability(ctx context.Context, filesystemName string) (int64, error) {
+	loggerId := GetLoggerId(ctx)
+	klog.V(4).Infof("[%s] rest_v2 GetDiskAvailability. filesystem %s", loggerId, filesystemName)
+
+	diskAvailabilityURL := fmt.Sprintf("scalemgmt/v2/filesystems/%s/disks?fields=availableBlocks", filesystemName)
+	getDiskAvailabilityResponse := &DiskSizeResponse{}
+
+	err := s.doHTTP(ctx, diskAvailabilityURL, "GET", getDiskAvailabilityResponse, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	var diskAvailable int64 = 0
+	for _, disk := range getDiskAvailabilityResponse.Disks {
+		klog.Infof("[%s] GetDiskAvailability: getDiskAvailabilityResponse %v", loggerId, disk)
+		/*if tier.StorageTierName == "system" {
+			continue
+		}
+
+		tierInfo, err := s.GetTierInfoFromName(ctx, tier.StorageTierName, tier.FilesystemName)
+		if err != nil {
+			return "", err
+		}
+		if tierInfo.TotalDataInKB > 0 {
+			klog.Infof("[%s] GetFirstDataTier: Setting default tier to %s", loggerId, tierInfo.StorageTierName)
+			return tierInfo.StorageTierName, nil
+		}*/
+		diskAvailable = diskAvailable + disk.AvailableBlocks
+	}
+
+	klog.V(6).Infof("[%s] GetDiskAvailability: getDiskAvailabilityResponse diskAvailable : [%v]", loggerId, diskAvailable)
+	return diskAvailable, nil
+}
+
 // getNextEndpoint returns the next endpoint to be used for
 // GUI REST calls. This function gets called when current
 // endpoint is not active.
