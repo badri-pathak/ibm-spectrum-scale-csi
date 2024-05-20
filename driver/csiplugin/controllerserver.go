@@ -680,9 +680,10 @@ func (cs *ScaleControllerServer) CreateVolume(ctx context.Context, req *csi.Crea
 			if isSnapSource {
 				klog.Infof("[%s] Requested pvc is a shallow copy volume", loggerId)
 				isShallowCopyVolume = true
-			} else {
-				return nil, status.Error(codes.Unimplemented, "Volume source with Access Mode ReadOnlyMany is not supported")
 			}
+			/*	else {
+				//return nil, status.Error(codes.Unimplemented, "Volume source with Access Mode ReadOnlyMany is not supported")
+			}*/
 		}
 	}
 

@@ -244,7 +244,8 @@ func (ns *ScaleNodeServer) NodePublishVolume(ctx context.Context, req *csi.NodeP
 			return nil, err
 		}
 	} else {
-		mounter := &mount.Mounter{}
+		//mounter := &mount.Mounter{}
+		mounter := mount.New("")
 		mntPoint, err := mounter.IsMountPoint(targetPath)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -265,8 +266,16 @@ func (ns *ScaleNodeServer) NodePublishVolume(ctx context.Context, req *csi.NodeP
 		}
 
 		// create bind mount
-		options := []string{"bind"}
-		klog.V(4).Infof("[%s] NodePublishVolume - creating bind mount [%v] -> [%v]", loggerId, targetPath, volScalePath)
+		var options []string
+		if volumeCapability.GetAccessMode().GetMode() == csi.VolumeCapability_AccessMode_MULTI_NODE_READER_ONLY {
+			options = []string{"bind", "ro"}
+
+		} else {
+			options = []string{"bind"}
+		}
+
+		klog.V(4).Infof("[%s] NodePublishVolume - creating bind mount targetPath:[%v] -> volScalePath:[%v] options :[%v]", loggerId, targetPath, volScalePath, options)
+
 		if err := mounter.Mount(volScalePath, targetPath, "", options); err != nil {
 			klog.Errorf("[%s] NodePublishVolume - mounting [%s] at [%s] failed with error [%v]", loggerId, volScalePath, targetPath, err)
 			return nil, fmt.Errorf("NodePublishVolume - mounting [%s] at [%s] failed with error [%v]", volScalePath, targetPath, err)
